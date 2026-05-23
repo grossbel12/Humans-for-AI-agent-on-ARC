@@ -70,7 +70,7 @@ contract EscrowMarketplace is Ownable, ReentrancyGuard {
         nonReentrant
         returns (uint256 taskId)
     {
-        if (executor == address(0) || executor == msg.sender) revert InvalidAddress();
+        if (executor == address(0)) revert InvalidAddress();
         if (amount == 0) revert InvalidAmount();
         if (deadline < block.timestamp + 1 hours) revert InvalidDeadline();
 

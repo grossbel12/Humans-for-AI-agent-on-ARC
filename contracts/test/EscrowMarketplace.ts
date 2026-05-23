@@ -37,6 +37,12 @@ describe("EscrowMarketplace", function () {
     expect(await token.balanceOf(employer.address)).to.equal(usdc(100));
   });
 
+  it("allows self-executor tasks for testnet demos", async () => {
+    const { employer, market } = await deploy();
+    const deadline = Math.floor(Date.now() / 1000) + 7200;
+    await expect(market.connect(employer).createTask(employer.address, usdc(1), deadline, hash)).to.emit(market, "TaskCreated");
+  });
+
   it("resolves dispute for employer", async () => {
     const { owner, employer, executor, token, market } = await deploy();
     const deadline = Math.floor(Date.now() / 1000) + 7200;

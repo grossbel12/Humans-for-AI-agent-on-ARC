@@ -51,10 +51,6 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         setStatus("Invalid executor address");
         return;
       }
-      if (executorAddress.toLowerCase() === address.toLowerCase()) {
-        setStatus("Executor must be another wallet");
-        return;
-      }
       const body = {
         employerAddress: address,
         executorAddress,
