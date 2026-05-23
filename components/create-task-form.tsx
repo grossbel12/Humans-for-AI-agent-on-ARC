@@ -16,10 +16,24 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
   useWaitForTransactionReceipt({ hash });
 
   async function submit(formData: FormData) {
-    if (!address) return;
-    setStatus("Creating DB task");
-    const amount = String(formData.get("amountUsdc"));
-    const deadline = new Date(String(formData.get("deadline"))).toISOString();
+    try {
+      if (!address) {
+        setStatus("Connect wallet first");
+        return;
+      }
+      const amount = String(formData.get("amountUsdc"));
+      const deadlineInput = String(formData.get("deadline"));
+      const deadlineDate = new Date(deadlineInput);
+      if (!amount || Number(amount) <= 0) {
+        setStatus("Enter USDC amount");
+        return;
+      }
+      if (Number.isNaN(deadlineDate.getTime()) || deadlineDate.getTime() <= Date.now()) {
+        setStatus("Choose future deadline");
+        return;
+      }
+      setStatus("Creating DB task");
+      const deadline = deadlineDate.toISOString();
     const body = {
       employerAddress: address,
       executorAddress: formData.get("executorAddress"),
@@ -30,45 +44,49 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       amountUsdc: amount,
       deadline
     };
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setStatus(data.error?.message ?? "Failed");
-      return;
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setStatus(data?.error?.message ?? `Task API failed (${res.status})`);
+        return;
+      }
+      const amountAtomic = parseUnits(amount, 6);
+      setStatus("Approve USDC");
+      await writeContractAsync({
+        address: USDC_ADDRESS,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [MARKETPLACE_ADDRESS, amountAtomic],
+        gas: 70_000n
+      });
+      setStatus("Create escrow");
+      const txHash = await writeContractAsync({
+        address: MARKETPLACE_ADDRESS,
+        abi: marketplaceAbi,
+        functionName: "createTask",
+        args: [data.tx.executorAddress, amountAtomic, BigInt(data.tx.deadlineUnix), data.tx.metadataHash],
+        gas: 350_000n
+      });
+      setHash(txHash);
+      const receipt = await publicClient?.waitForTransactionReceipt({ hash: txHash });
+      const logs = receipt
+        ? parseEventLogs({ abi: marketplaceAbi, logs: receipt.logs, eventName: "TaskCreated" })
+        : [];
+      const chainTaskId = logs[0]?.args.taskId?.toString();
+      await fetch(`/api/tasks/${data.task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Open", txHash, chainTaskId })
+      });
+      setStatus("Escrow tx sent");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Escrow failed";
+      setStatus(message);
     }
-    const amountAtomic = parseUnits(amount, 6);
-    setStatus("Approve USDC");
-    await writeContractAsync({
-      address: USDC_ADDRESS,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [MARKETPLACE_ADDRESS, amountAtomic],
-      gas: 70_000n
-    });
-    setStatus("Create escrow");
-    const txHash = await writeContractAsync({
-      address: MARKETPLACE_ADDRESS,
-      abi: marketplaceAbi,
-      functionName: "createTask",
-      args: [data.tx.executorAddress, amountAtomic, BigInt(data.tx.deadlineUnix), data.tx.metadataHash],
-      gas: 350_000n
-    });
-    setHash(txHash);
-    const receipt = await publicClient?.waitForTransactionReceipt({ hash: txHash });
-    const logs = receipt
-      ? parseEventLogs({ abi: marketplaceAbi, logs: receipt.logs, eventName: "TaskCreated" })
-      : [];
-    const chainTaskId = logs[0]?.args.taskId?.toString();
-    await fetch(`/api/tasks/${data.task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Open", txHash, chainTaskId })
-    });
-    setStatus("Escrow tx sent");
   }
 
   return (
