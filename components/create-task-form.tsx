@@ -60,14 +60,15 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       const taskHash = await metadataHash(body);
       const amountAtomic = parseUnits(amount, 6);
       const deadlineUnix = Math.floor(deadlineDate.getTime() / 1000);
+      setStatus("Switch to Arc Testnet");
       if (chainId !== ARC_CHAIN_ID) {
-        setStatus("Switch to Arc Testnet");
         try {
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
         } catch {
-          await ensureArcTestnet();
+          // MetaMask sometimes needs the direct EIP-3326/EIP-3085 path.
         }
       }
+      await ensureArcTestnet();
       setStatus("Approve USDC");
       await writeContractAsync({
         chainId: ARC_CHAIN_ID,

@@ -15,7 +15,9 @@ export function ConnectWallet() {
   async function handleClick() {
     try {
       if (isConnected) {
-        disconnect();
+        setStatus("Switch Arc");
+        await ensureArcTestnet();
+        setStatus("");
         return;
       }
       setStatus("Connect");
@@ -24,6 +26,7 @@ export function ConnectWallet() {
       await ensureArcTestnet();
       setStatus("");
     } catch (error) {
+      if (isConnected) disconnect();
       setStatus(error instanceof Error ? error.message.slice(0, 24) : "Wallet failed");
     }
   }

@@ -37,4 +37,9 @@ export async function ensureArcTestnet() {
       ]
     });
   }
+
+  const currentChainId = await ethereum.request({ method: "eth_chainId" });
+  if (String(currentChainId).toLowerCase() !== ARC_CHAIN_HEX) {
+    throw new Error(`Switch wallet to Arc Testnet (${ARC_CHAIN_ID})`);
+  }
 }
