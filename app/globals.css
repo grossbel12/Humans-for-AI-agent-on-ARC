@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: #f8f6f0;
+  color: #141414;
+}
+
+body {
+  margin: 0;
+  background: #f8f6f0;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.field {
+  @apply w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-moss;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition;
+}
+
+.btn-primary {
+  @apply bg-ink text-white hover:bg-moss;
+}
+
+.btn-soft {
+  @apply border border-black/15 bg-white hover:border-moss;
+}
