@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     deadline: body.deadline
   };
   const metadataHash = bytes32Hash(metadata);
+  const taskHash = body.metadataHash ?? metadataHash;
   const amountAtomic = usdcToAtomic(body.amountUsdc);
 
   await prisma.user.upsert({ where: { address: employerAddress }, update: {}, create: { address: employerAddress } });
@@ -33,13 +34,15 @@ export async function POST(req: NextRequest) {
     data: {
       ...metadata,
       amountAtomic,
-      metadataHash,
+      metadataHash: taskHash,
+      txHash: body.txHash,
+      chainTaskId: body.chainTaskId,
       deadline: new Date(body.deadline),
       contractAddress: MARKETPLACE_ADDRESS
     }
   });
 
-  return Response.json({ task, tx: { executorAddress, amountAtomic, deadlineUnix: Math.floor(new Date(body.deadline).getTime() / 1000), metadataHash } });
+  return Response.json({ task, tx: { executorAddress, amountAtomic, deadlineUnix: Math.floor(new Date(body.deadline).getTime() / 1000), metadataHash: taskHash } });
 }
 
 export async function GET(req: NextRequest) {
