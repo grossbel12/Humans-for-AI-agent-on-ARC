@@ -111,7 +111,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setStatus(data?.error?.message ?? `Escrow sent, DB save failed (${res.status})`);
+        setStatus(data?.error?.message ? `Escrow created, DB: ${data.error.message}` : `Escrow created, DB save failed (${res.status})`);
         return;
       }
       setStatus("Escrow created");
