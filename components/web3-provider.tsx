@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { defineChain } from "viem";
-import { injected } from "wagmi/connectors";
+import { injected, metaMask } from "wagmi/connectors";
 import { ARC_CHAIN_ID, ARC_EXPLORER, ARC_RPC_URL } from "@/lib/constants";
 import { useState } from "react";
 
@@ -17,7 +17,7 @@ const arcTestnet = defineChain({
 
 const config = createConfig({
   chains: [arcTestnet],
-  connectors: [injected()],
+  connectors: [metaMask(), injected()],
   transports: { [arcTestnet.id]: http(ARC_RPC_URL) }
 });
 

@@ -5,6 +5,13 @@ import { useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { ensureArcTestnet } from "@/lib/arc-wallet";
 
+function shortWalletError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Wallet failed";
+  if (/provider not found|not found|no provider/i.test(message)) return "Open with MetaMask";
+  if (/user rejected|rejected/i.test(message)) return "Rejected";
+  return message.slice(0, 24);
+}
+
 export function ConnectWallet() {
   const { address, isConnected } = useAccount();
   const { connectAsync, connectors } = useConnect();
@@ -21,13 +28,14 @@ export function ConnectWallet() {
         return;
       }
       setStatus("Connect");
-      await connectAsync({ connector: connectors[0] });
+      const connector = connectors.find((item) => item.id === "metaMask" || /metamask/i.test(item.name)) ?? connectors[0];
+      await connectAsync({ connector });
       setStatus("Switch Arc");
       await ensureArcTestnet();
       setStatus("");
     } catch (error) {
       if (isConnected) disconnect();
-      setStatus(error instanceof Error ? error.message.slice(0, 24) : "Wallet failed");
+      setStatus(shortWalletError(error));
     }
   }
 
