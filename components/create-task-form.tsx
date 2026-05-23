@@ -6,6 +6,7 @@ import { parseEventLogs, parseUnits } from "viem";
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { erc20Abi, marketplaceAbi } from "@/lib/contractAbi";
 import { ARC_CHAIN_ID, MARKETPLACE_ADDRESS, USDC_ADDRESS } from "@/lib/constants";
+import { ensureArcTestnet } from "@/lib/arc-wallet";
 
 async function metadataHash(input: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(input));
@@ -61,10 +62,15 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       const deadlineUnix = Math.floor(deadlineDate.getTime() / 1000);
       if (chainId !== ARC_CHAIN_ID) {
         setStatus("Switch to Arc Testnet");
-        await switchChainAsync({ chainId: ARC_CHAIN_ID });
+        try {
+          await switchChainAsync({ chainId: ARC_CHAIN_ID });
+        } catch {
+          await ensureArcTestnet();
+        }
       }
       setStatus("Approve USDC");
       await writeContractAsync({
+        chainId: ARC_CHAIN_ID,
         address: USDC_ADDRESS,
         abi: erc20Abi,
         functionName: "approve",
@@ -73,6 +79,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       });
       setStatus("Create escrow");
       const txHash = await writeContractAsync({
+        chainId: ARC_CHAIN_ID,
         address: MARKETPLACE_ADDRESS,
         abi: marketplaceAbi,
         functionName: "createTask",
