@@ -7,42 +7,47 @@ import { MARKETPLACE_ADDRESS } from "@/lib/constants";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const sessionAddress = await getSessionAddress();
-  const body = await req.json();
-  const employerAddress = normalizeAddress(body.employerAddress ?? sessionAddress ?? "");
-  const executorAddress = normalizeAddress(body.executorAddress ?? "");
-  if (!employerAddress || !executorAddress) return apiError("employer and executor required");
+  try {
+    const sessionAddress = await getSessionAddress();
+    const body = await req.json();
+    const employerAddress = normalizeAddress(body.employerAddress ?? sessionAddress ?? "");
+    const executorAddress = normalizeAddress(body.executorAddress ?? "");
+    if (!employerAddress || !executorAddress) return apiError("employer and executor required");
 
-  const metadata = {
-    title: body.title,
-    description: body.description,
-    category: body.category ?? "Other",
-    location: body.location ?? "",
-    employerAddress,
-    executorAddress,
-    amountUsdc: String(body.amountUsdc),
-    deadline: body.deadline
-  };
-  const metadataHash = bytes32Hash(metadata);
-  const taskHash = body.metadataHash ?? metadataHash;
-  const amountAtomic = usdcToAtomic(body.amountUsdc);
+    const metadata = {
+      title: body.title,
+      description: body.description,
+      category: body.category ?? "Other",
+      location: body.location ?? "",
+      employerAddress,
+      executorAddress,
+      amountUsdc: String(body.amountUsdc),
+      deadline: body.deadline
+    };
+    const metadataHash = bytes32Hash(metadata);
+    const taskHash = body.metadataHash ?? metadataHash;
+    const amountAtomic = usdcToAtomic(body.amountUsdc);
 
-  await prisma.user.upsert({ where: { address: employerAddress }, update: {}, create: { address: employerAddress } });
-  await prisma.user.upsert({ where: { address: executorAddress }, update: {}, create: { address: executorAddress } });
+    await prisma.user.upsert({ where: { address: employerAddress }, update: {}, create: { address: employerAddress } });
+    await prisma.user.upsert({ where: { address: executorAddress }, update: {}, create: { address: executorAddress } });
 
-  const task = await prisma.task.create({
-    data: {
-      ...metadata,
-      amountAtomic,
-      metadataHash: taskHash,
-      txHash: body.txHash,
-      chainTaskId: body.chainTaskId,
-      deadline: new Date(body.deadline),
-      contractAddress: MARKETPLACE_ADDRESS
-    }
-  });
+    const task = await prisma.task.create({
+      data: {
+        ...metadata,
+        amountAtomic,
+        metadataHash: taskHash,
+        txHash: body.txHash,
+        chainTaskId: body.chainTaskId,
+        deadline: new Date(body.deadline),
+        contractAddress: MARKETPLACE_ADDRESS
+      }
+    });
 
-  return Response.json({ task, tx: { executorAddress, amountAtomic, deadlineUnix: Math.floor(new Date(body.deadline).getTime() / 1000), metadataHash: taskHash } });
+    return Response.json({ task, tx: { executorAddress, amountAtomic, deadlineUnix: Math.floor(new Date(body.deadline).getTime() / 1000), metadataHash: taskHash } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Task save failed";
+    return apiError(message, 500, "task_save_failed");
+  }
 }
 
 export async function GET(req: NextRequest) {
