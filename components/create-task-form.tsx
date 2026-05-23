@@ -2,7 +2,7 @@
 
 import { Coins, Send } from "lucide-react";
 import { useState } from "react";
-import { parseEventLogs, parseUnits } from "viem";
+import { isAddress, parseEventLogs, parseUnits } from "viem";
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { erc20Abi, marketplaceAbi } from "@/lib/contractAbi";
 import { ARC_CHAIN_ID, MARKETPLACE_ADDRESS, USDC_ADDRESS } from "@/lib/constants";
@@ -47,6 +47,14 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       }
       const deadline = deadlineDate.toISOString();
       const executorAddress = String(formData.get("executorAddress"));
+      if (!isAddress(executorAddress)) {
+        setStatus("Invalid executor address");
+        return;
+      }
+      if (executorAddress.toLowerCase() === address.toLowerCase()) {
+        setStatus("Executor must be another wallet");
+        return;
+      }
       const body = {
         employerAddress: address,
         executorAddress,
@@ -70,7 +78,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       }
       await ensureArcTestnet();
       setStatus("Approve USDC");
-      await writeContractAsync({
+      const approveHash = await writeContractAsync({
         chainId: ARC_CHAIN_ID,
         address: USDC_ADDRESS,
         abi: erc20Abi,
@@ -78,6 +86,12 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         args: [MARKETPLACE_ADDRESS, amountAtomic],
         gas: 70_000n
       });
+      setStatus("Wait approve");
+      const approveReceipt = await publicClient?.waitForTransactionReceipt({ hash: approveHash });
+      if (approveReceipt?.status === "reverted") {
+        setStatus("Approve reverted");
+        return;
+      }
       setStatus("Create escrow");
       const txHash = await writeContractAsync({
         chainId: ARC_CHAIN_ID,
