@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { isAddress, parseEventLogs, parseUnits } from "viem";
@@ -141,19 +141,38 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
 
   return (
     <form action={submit} className="mt-5 grid gap-3 rounded-md border border-black/10 bg-white p-4">
-      <input className="field" name="executorAddress" placeholder="Executor 0x... or blank for any worker" defaultValue={defaultExecutor} />
-      <input className="field" name="title" placeholder="Task title" required />
-      <textarea className="field min-h-28" name="description" placeholder="Exact instructions and proof needed" required />
+      <label className="grid gap-1">
+        <span className="text-sm font-semibold">Executor</span>
+        <input className="field" name="executorAddress" placeholder="Worker wallet, or leave blank for any worker" defaultValue={defaultExecutor} />
+      </label>
+      <label className="grid gap-1">
+        <span className="text-sm font-semibold">Task title</span>
+        <input className="field" name="title" placeholder="Example: Check storefront and upload photos" required />
+      </label>
+      <label className="grid gap-1">
+        <span className="text-sm font-semibold">Instructions for worker</span>
+        <textarea className="field min-h-28" name="description" placeholder="Describe exactly what the worker should do and what proof they must submit." required />
+      </label>
       <div className="grid gap-3 md:grid-cols-2">
-        <input className="field" name="category" placeholder="Category" required />
-        <input className="field" name="location" placeholder="Location or Remote" />
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold">Category</span>
+          <input className="field" name="category" placeholder="Inspection, delivery, repair" required />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold">Location</span>
+          <input className="field" name="location" placeholder="City, address, or Remote" />
+        </label>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="relative">
-          <Coins className="pointer-events-none absolute left-3 top-2.5" size={16} />
-          <input className="field pl-9" name="amountUsdc" type="number" min="1" step="0.000001" placeholder="USDC" required />
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold">Escrow amount, USDC</span>
+          <input className="field" name="amountUsdc" type="number" min="0.000001" step="0.000001" inputMode="decimal" placeholder="1.00" required />
         </label>
-        <input className="field" name="deadline" type="datetime-local" required />
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold">Deadline</span>
+          <input className="field" name="deadline" type="datetime-local" lang="en-US" required />
+          <span className="text-xs text-black/55">Use a future date and time.</span>
+        </label>
       </div>
       <button className="btn btn-primary" type="submit" disabled={!address}>
         <Send size={16} />
