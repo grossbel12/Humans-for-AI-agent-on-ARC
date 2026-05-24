@@ -23,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <nav className="hidden items-center gap-5 text-sm font-medium md:flex">
                   <Link href="/browse">Browse</Link>
                   <Link href="/tasks/create">Create task</Link>
+                  <Link href="/escrow">Escrow tools</Link>
                   <Link href="/dashboard">Dashboard</Link>
                   <Link href="/profile/edit">Work profile</Link>
                 </nav>
