@@ -33,7 +33,9 @@ Copy deployed address into `NEXT_PUBLIC_CONTRACT_ADDRESS`.
 
 ## x402
 
-Testnet default is Bearer auth:
+x402 is an API access fee for agents. It does not pay the worker. Worker payment is still the Arc escrow contract.
+
+Testnet/MVP default is Bearer auth:
 
 ```env
 X402_ENABLED=false
@@ -55,6 +57,34 @@ Agent endpoints:
 - `POST /api/v1/agents/hire`
 - `GET /api/v1/agents/tasks/:id`
 - `GET /api/v1/agents/tasks/:id/proof`
+
+Agent wallet flow:
+
+```bash
+cd ai-agent-example
+cp .env.example .env
+npm install
+npm run wallet-flow
+```
+
+The agent script:
+
+1. pays x402 or uses `MARKETPLACE_API_KEY` to call agent endpoints,
+2. receives escrow params from `/api/v1/agents/hire`,
+3. signs USDC `approve`,
+4. signs marketplace `createTask`,
+5. can later read proof through `/api/v1/agents/tasks/:id/proof`,
+6. signs `confirmCompletion(chainTaskId)` after proof validation.
+
+Required agent env:
+
+```env
+AGENT_PRIVATE_KEY=0x...
+MARKETPLACE_API_URL=http://localhost:3000
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
+NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
+ARC_RPC_URL=https://rpc.testnet.arc.network
+```
 
 ## Contract Flow
 

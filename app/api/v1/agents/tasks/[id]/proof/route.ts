@@ -1,6 +1,7 @@
 import { withX402 } from "@x402/next";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAgent } from "@/lib/agent-auth";
+import { getOnchainTaskProof } from "@/lib/agent-chain";
 import { getTask } from "@/lib/store";
 import { getX402Server, x402Payment } from "@/lib/x402";
 
@@ -12,7 +13,14 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const task = await getTask(id);
   if (!task) return NextResponse.json({ error: { code: "not_found", message: "task not found" } }, { status: 404 });
-  return NextResponse.json({ proofUrl: task.proofUrl, proofHash: task.proofHash, status: task.status });
+  const onchain = !task.proofHash && task.chainTaskId ? await getOnchainTaskProof(task.chainTaskId) : null;
+  return NextResponse.json({
+    proofUrl: task.proofUrl,
+    proofHash: task.proofHash ?? onchain?.proofHash ?? null,
+    status: onchain?.status ?? task.status,
+    chainTaskId: task.chainTaskId,
+    onchain
+  });
 }
 
 export const GET =

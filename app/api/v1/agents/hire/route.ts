@@ -43,7 +43,8 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       amountAtomic: task.amountAtomic,
       deadlineUnix: Math.floor(deadline.getTime() / 1000),
       metadataHash: task.metadataHash
-    }
+    },
+    note: "x402 pays only for API access. The agent wallet must fund escrow on-chain with USDC approve + createTask, then confirmCompletion after proof."
   });
 }
 
