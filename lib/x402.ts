@@ -14,6 +14,11 @@ export function getX402Server() {
 export function x402Payment(price: string, description: string) {
   const payTo = process.env.MARKETPLACE_WALLET_ADDRESS;
   if (!payTo) throw new Error("MARKETPLACE_WALLET_ADDRESS missing");
+  return x402PaymentTo(price, description, payTo);
+}
+
+export function x402PaymentTo(price: string, description: string, payTo: string) {
+  if (!payTo) throw new Error("x402 payTo missing");
   const network = (process.env.X402_NETWORK ?? "eip155:5042002") as `${string}:${string}`;
   return {
     accepts: [

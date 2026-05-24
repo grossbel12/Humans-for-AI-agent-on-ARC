@@ -128,6 +128,20 @@ async function main() {
   });
   console.log("hire", JSON.stringify(hire, null, 2));
 
+  if (process.env.X402_DIRECT_WORK_PAYMENT === "true") {
+    const directPayment = await api("/api/v1/agents/work-pay", {
+      method: "POST",
+      body: JSON.stringify({
+        workerAddress: process.env.X402_WORKER_PAY_TO ?? executorAddress,
+        taskId: hire.task.id,
+        title: "Direct x402 work payment",
+        proofUrl: process.env.X402_WORK_PROOF_URL ?? null,
+        note: "Agent paid worker through x402 direct-pay mode."
+      })
+    });
+    console.log("direct x402 work payment", JSON.stringify(directPayment, null, 2));
+  }
+
   const escrow = hire.escrow;
   const contractAddress = escrow.contractAddress as `0x${string}`;
   const amountAtomic = BigInt(escrow.amountAtomic);

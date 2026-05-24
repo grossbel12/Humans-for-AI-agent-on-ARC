@@ -502,11 +502,18 @@ Buttons are only enabled when the connected wallet is allowed to act.
 
 ## x402 Logic
 
-x402 is not the worker payment.
+x402 has two roles in this MVP:
 
-x402 is the agent API access payment.
+1. **API access payment**
+   - the agent pays to use RentAHuman APIs
+   - money goes to the marketplace wallet
 
-The worker payment happens through Arc escrow.
+2. **Direct work payment**
+   - the agent pays a worker directly through x402
+   - money goes to a configured worker wallet
+   - best for instant, small, low-dispute tasks
+
+For larger tasks, escrow is still safer because it gives both sides a lifecycle: accept, proof, confirm, dispute, auto-release.
 
 ### Why x402 Is Used
 
@@ -517,9 +524,10 @@ In RentAHuman:
 - an agent pays x402 to search humans
 - an agent pays x402 to create hire requests
 - an agent pays x402 to retrieve proof
-- an agent separately funds escrow on Arc to pay the human
+- an agent can pay x402 directly to a worker for simple completed work
+- an agent can separately fund escrow on Arc for protected work
 
-### Two Payment Layers
+### Payment Layers
 
 Layer 1: x402 API fee
 
@@ -528,7 +536,14 @@ Layer 1: x402 API fee
 - goes to `MARKETPLACE_WALLET_ADDRESS`
 - does not pay worker
 
-Layer 2: Arc escrow
+Layer 2: x402 direct work payment
+
+- paid by agent
+- goes to `X402_WORKER_PAY_TO`
+- used for quick tasks where escrow is not needed
+- example: "pay this worker $1 for a submitted proof/report"
+
+Layer 3: Arc escrow
 
 - funded by employer or agent wallet
 - held by smart contract
@@ -542,14 +557,13 @@ AI Agent
   -> pays x402
   -> gets API access
   -> finds worker
-  -> funds Arc escrow
-  -> receives proof
-  -> confirms payout
+  -> either pays worker directly with x402
+  -> or funds Arc escrow for protected work
 
 Human Worker
   -> accepts task
   -> submits proof
-  -> gets paid by contract
+  -> gets paid by x402 direct payment or escrow payout
 ```
 
 ### x402-Protected Endpoints
@@ -562,6 +576,7 @@ When `X402_ENABLED=true`, these endpoints require x402 payment:
 | `POST /api/v1/agents/hire` | `$0.05` | Create hire request |
 | `GET /api/v1/agents/tasks/:id` | `$0.005` | Read task |
 | `GET /api/v1/agents/tasks/:id/proof` | `$0.005` | Read proof |
+| `POST /api/v1/agents/work-pay` | `X402_WORK_PRICE` | Direct x402 payment for completed work |
 
 When `X402_ENABLED=false`, the same endpoints use bearer auth:
 
@@ -578,9 +593,61 @@ X402_ENABLED=true
 MARKETPLACE_WALLET_ADDRESS=0x...
 X402_FACILITATOR_URL=https://x402.org/facilitator
 X402_NETWORK=eip155:5042002
+X402_DIRECT_WORK_PAYMENT=true
+X402_WORKER_PAY_TO=0xWorkerWallet
+X402_WORK_PRICE="$1.00"
 ```
 
 `MARKETPLACE_WALLET_ADDRESS` receives x402 API fees. It can be the same wallet as `feeRecipient`, but it does not have to be.
+
+`X402_WORKER_PAY_TO` receives direct x402 work payments. In the current MVP this is a fixed configured worker wallet per endpoint deployment. For a production marketplace, this can evolve into per-worker hosted endpoints or dynamic payment routes.
+
+### Direct x402 Work Payment
+
+Endpoint:
+
+```http
+POST /api/v1/agents/work-pay
+```
+
+Purpose:
+
+- demonstrate x402 as payment for work, not only API access
+- let an agent pay a worker directly after a small task or proof
+- useful for microtasks where escrow/dispute flow is unnecessary
+
+Request:
+
+```json
+{
+  "workerAddress": "0xWorkerWallet",
+  "taskId": "optional-task-id",
+  "title": "Direct x402 work payment",
+  "proofUrl": "https://example.com/proof.jpg",
+  "note": "Worker completed a small verification task."
+}
+```
+
+Response after x402 payment:
+
+```json
+{
+  "workPayment": {
+    "type": "x402-direct-worker-payment",
+    "workerAddress": "0xWorkerWallet",
+    "price": "$1.00",
+    "taskId": "optional-task-id",
+    "title": "Direct x402 work payment",
+    "proofUrl": "https://example.com/proof.jpg"
+  },
+  "note": "This endpoint represents direct x402 payment for completed work. It is best for instant/micro tasks. Escrow remains the safer flow for larger or dispute-prone tasks."
+}
+```
+
+This gives the hackathon story two payment models:
+
+- **x402 direct-pay work**: agent pays worker directly for instant work.
+- **Arc escrow work**: agent locks funds, worker submits proof, agent confirms payout.
 
 ## AI Agent Wallet Flow
 
