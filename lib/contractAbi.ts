@@ -67,6 +67,24 @@ export const marketplaceAbi = [
     stateMutability: "nonpayable",
     inputs: [{ name: "taskId", type: "uint256" }],
     outputs: []
+  },
+  {
+    type: "function",
+    name: "tasks",
+    stateMutability: "view",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [
+      { name: "id", type: "uint256" },
+      { name: "employer", type: "address" },
+      { name: "executor", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "status", type: "uint8" },
+      { name: "taskHash", type: "bytes32" },
+      { name: "proofHash", type: "bytes32" },
+      { name: "createdAt", type: "uint256" },
+      { name: "completedAt", type: "uint256" }
+    ]
   }
 ] as const;
 
