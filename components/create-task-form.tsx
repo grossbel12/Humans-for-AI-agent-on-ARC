@@ -15,6 +15,13 @@ async function metadataHash(input: unknown) {
   return `0x${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
 }
 
+function parseDeadline(value: string) {
+  const normalized = value.trim().replace(" ", "T");
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) return null;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string }) {
   const { address } = useAccount();
   const chainId = useChainId();
@@ -39,13 +46,13 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       }
       const amount = String(formData.get("amountUsdc"));
       const deadlineInput = String(formData.get("deadline"));
-      const deadlineDate = new Date(deadlineInput);
+      const deadlineDate = parseDeadline(deadlineInput);
       if (!amount || Number(amount) <= 0) {
         setStatus("Enter USDC amount");
         return;
       }
-      if (Number.isNaN(deadlineDate.getTime()) || deadlineDate.getTime() <= Date.now()) {
-        setStatus("Choose future deadline");
+      if (!deadlineDate || deadlineDate.getTime() <= Date.now()) {
+        setStatus("Use deadline format YYYY-MM-DD HH:MM");
         return;
       }
       if (MARKETPLACE_ADDRESS === "0x0000000000000000000000000000000000000000") {
@@ -170,8 +177,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         </label>
         <label className="grid gap-1">
           <span className="text-sm font-semibold">Deadline</span>
-          <input className="field" name="deadline" type="datetime-local" lang="en-US" required />
-          <span className="text-xs text-black/55">Use a future date and time.</span>
+          <input className="field" name="deadline" type="text" inputMode="numeric" placeholder="YYYY-MM-DD HH:MM" required />
         </label>
       </div>
       <button className="btn btn-primary" type="submit" disabled={!address}>
