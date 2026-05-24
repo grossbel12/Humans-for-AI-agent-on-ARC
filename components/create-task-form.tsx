@@ -48,14 +48,19 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         return;
       }
       const amount = String(formData.get("amountUsdc"));
-      const deadlineInput = String(formData.get("deadline"));
+      const deadlineDateInput = String(formData.get("deadlineDate") ?? "").trim();
+      const deadlineTimeInput = String(formData.get("deadlineTime") ?? "").trim();
+      const deadlineInput =
+        deadlineDateInput && deadlineTimeInput
+          ? `${deadlineDateInput} ${deadlineTimeInput}`
+          : String(formData.get("deadline") ?? "");
       const deadlineDate = parseDeadline(deadlineInput);
       if (!amount || Number(amount) <= 0) {
         setStatus("Enter USDC amount");
         return;
       }
       if (!deadlineDate || deadlineDate.getTime() <= Date.now()) {
-        setStatus("Use a future deadline: YYYY-MM-DD HH:MM");
+        setStatus("Pick a future date and time");
         return;
       }
       if (MARKETPLACE_ADDRESS === "0x0000000000000000000000000000000000000000") {
@@ -180,8 +185,11 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         </label>
         <label className="grid gap-1">
           <span className="text-sm font-semibold">Deadline</span>
-          <input className="field" name="deadline" type="text" inputMode="numeric" autoComplete="off" placeholder="YYYY-MM-DD HH:MM" required />
-          <span className="text-xs text-black/60">Use English format, for example 2026-11-11 11:11.</span>
+          <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+            <input className="field" name="deadlineDate" type="date" required aria-label="Deadline date" />
+            <input className="field" name="deadlineTime" type="time" required aria-label="Deadline time" />
+          </div>
+          <span className="text-xs text-black/60">Pick date and time with the browser controls.</span>
         </label>
       </div>
       <button className="btn btn-primary" type="submit">
