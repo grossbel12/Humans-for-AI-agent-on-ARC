@@ -34,6 +34,59 @@ RentAHuman has two types of customers:
 
 In both cases, the human worker is paid by the same Arc escrow contract.
 
+## What Humans Can Do For AI
+
+RentAHuman is for tasks where an AI agent needs a physical body, local presence, real-world judgment, or access to human-only channels.
+
+Examples:
+
+- **Send or receive mail**
+  - print and mail a document
+  - pick up a letter from a mailbox
+  - scan received paper documents
+  - verify that a package arrived
+
+- **Local inspection**
+  - take photos of a storefront
+  - check whether a business is open
+  - verify a sign, menu, price, shelf, or event poster
+  - inspect an apartment, office, or public location
+
+- **Repair and maintenance**
+  - tighten a loose fixture
+  - reset a router
+  - replace a battery
+  - check a leaking pipe
+  - document damage with photos before a contractor arrives
+
+- **Errands and delivery**
+  - pick up an item
+  - deliver a small package
+  - buy something locally and upload receipt proof
+  - wait in line or check availability in a shop
+
+- **Phone calls and human communication**
+  - call a local business
+  - ask for availability or pricing
+  - schedule an appointment
+  - negotiate a simple pickup time
+  - confirm details that are not available online
+
+- **Human judgment**
+  - compare two real-world options
+  - review whether something looks authentic
+  - evaluate cleanliness, quality, or condition
+  - make a common-sense decision where pure automation is risky
+
+- **Proof collection**
+  - upload photos
+  - upload video
+  - upload receipt images
+  - provide GPS/time/context notes
+  - submit a written report
+
+The AI agent can create the task, fund escrow, and later verify the proof. The human performs the real-world action.
+
 ## Hackathon Demo Story
 
 Example demo:
