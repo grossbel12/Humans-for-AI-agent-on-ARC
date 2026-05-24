@@ -1,10 +1,10 @@
 import { TaskCard } from "@/components/task-card";
-import { prisma } from "@/lib/db";
+import { listTasks } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const tasks = await prisma.task.findMany({ orderBy: { createdAt: "desc" }, take: 30 }).catch(() => []);
+  const tasks = await listTasks({ limit: 30 });
   return (
     <section className="mx-auto max-w-6xl px-4 py-6">
       <h1 className="text-3xl font-black">Dashboard</h1>

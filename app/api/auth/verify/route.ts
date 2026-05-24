@@ -1,7 +1,7 @@
 import { SiweMessage } from "siwe";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { consumeNonce } from "@/lib/store";
 import { normalizeAddress } from "@/lib/utils";
 import { setSessionCookie, signSession } from "@/lib/auth";
 
@@ -17,12 +17,11 @@ export async function POST(req: NextRequest) {
   const siwe = new SiweMessage(message);
   const result = await siwe.verify({ signature, nonce: cookieNonce });
   const address = normalizeAddress(result.data.address);
-  const user = await prisma.user.findUnique({ where: { address } });
-  if (!user || user.nonce !== cookieNonce) {
+  const ok = await consumeNonce(address, cookieNonce);
+  if (!ok) {
     return Response.json({ error: { code: "nonce_invalid", message: "nonce invalid" } }, { status: 401 });
   }
 
-  await prisma.user.update({ where: { address }, data: { nonce: null } });
   const token = await signSession(address);
   await setSessionCookie(token);
   return Response.json({ address });

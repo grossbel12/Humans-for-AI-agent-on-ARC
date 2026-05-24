@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { setNonce } from "@/lib/store";
 import { normalizeAddress } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -13,11 +13,7 @@ export async function POST(req: NextRequest) {
   }
   const nonce = randomBytes(16).toString("hex");
   const normalized = normalizeAddress(address);
-  await prisma.user.upsert({
-    where: { address: normalized },
-    update: { nonce },
-    create: { address: normalized, nonce }
-  });
+  await setNonce(normalized, nonce);
   (await cookies()).set("rah_nonce", nonce, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 600 });
   return Response.json({ nonce });
 }

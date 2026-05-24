@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { listHumans } from "@/lib/store";
 
 export const runtime = "nodejs";
 
@@ -11,17 +11,7 @@ export async function GET(req: NextRequest) {
   const maxRate = url.searchParams.get("maxRate");
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 24), 50);
 
-  const humans = await prisma.humanProfile.findMany({
-    where: {
-      available: true,
-      ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),
-      ...(skill ? { skills: { has: skill } } : {}),
-      ...(category ? { categories: { has: category } } : {}),
-      ...(maxRate ? { rateUsd: { lte: maxRate } } : {})
-    },
-    orderBy: [{ verified: "desc" }, { reputation: "desc" }, { rateUsd: "asc" }],
-    take: limit
-  });
+  const humans = await listHumans({ city, skill, category, maxRate, limit });
 
   return Response.json({ humans });
 }

@@ -1,17 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, BriefcaseBusiness, MapPin } from "lucide-react";
-import { demoHumans } from "@/lib/demo-data";
-import { prisma } from "@/lib/db";
+import { getHuman } from "@/lib/store";
 import { normalizeAddress } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
-  const profile = await prisma.humanProfile
-    .findUnique({ where: { address: normalizeAddress(address) } })
-    .catch(() => demoHumans.find((human) => human.address.toLowerCase() === normalizeAddress(address)) ?? null);
+  const profile = await getHuman(normalizeAddress(address));
   if (!profile) notFound();
 
   return (

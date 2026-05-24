@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import { ProofForm } from "@/components/proof-form";
 import { TaskActions } from "@/components/task-actions";
-import { prisma } from "@/lib/db";
+import { getTask } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const task = await prisma.task.findUnique({ where: { id } });
+  const task = await getTask(id);
   if (!task) notFound();
   return (
     <section className="mx-auto max-w-4xl px-4 py-6">

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getSessionAddress } from "@/lib/auth";
+import { createTask, listTasks } from "@/lib/store";
 import { apiError, bytes32Hash, normalizeAddress, usdcToAtomic } from "@/lib/utils";
 import { MARKETPLACE_ADDRESS } from "@/lib/constants";
 
@@ -7,7 +8,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prisma } = await import("@/lib/db");
     const sessionAddress = await getSessionAddress();
     const body = await req.json();
     const employerAddress = normalizeAddress(body.employerAddress ?? sessionAddress ?? "");
@@ -28,19 +28,14 @@ export async function POST(req: NextRequest) {
     const taskHash = body.metadataHash ?? metadataHash;
     const amountAtomic = usdcToAtomic(body.amountUsdc);
 
-    await prisma.user.upsert({ where: { address: employerAddress }, update: {}, create: { address: employerAddress } });
-    await prisma.user.upsert({ where: { address: executorAddress }, update: {}, create: { address: executorAddress } });
-
-    const task = await prisma.task.create({
-      data: {
-        ...metadata,
-        amountAtomic,
-        metadataHash: taskHash,
-        txHash: body.txHash,
-        chainTaskId: body.chainTaskId,
-        deadline: new Date(body.deadline),
-        contractAddress: MARKETPLACE_ADDRESS
-      }
+    const task = await createTask({
+      ...metadata,
+      amountAtomic,
+      metadataHash: taskHash,
+      txHash: body.txHash,
+      chainTaskId: body.chainTaskId,
+      deadline: new Date(body.deadline),
+      contractAddress: MARKETPLACE_ADDRESS
     });
 
     return Response.json({ task, tx: { executorAddress, amountAtomic, deadlineUnix: Math.floor(new Date(body.deadline).getTime() / 1000), metadataHash: taskHash } });
@@ -52,14 +47,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { prisma } = await import("@/lib/db");
     const url = new URL(req.url);
     const address = url.searchParams.get("address")?.toLowerCase();
-    const tasks = await prisma.task.findMany({
-      where: address ? { OR: [{ employerAddress: address }, { executorAddress: address }] } : {},
-      orderBy: { createdAt: "desc" },
-      take: 50
-    });
+    const tasks = await listTasks({ address, limit: 50 });
     return Response.json({ tasks });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Task list unavailable";

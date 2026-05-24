@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { HumanCard } from "@/components/human-card";
-import { demoHumans } from "@/lib/demo-data";
-import { prisma } from "@/lib/db";
+import { listHumans } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +11,7 @@ export default async function BrowsePage({
   searchParams: Promise<{ city?: string; skill?: string; maxRate?: string }>;
 }) {
   const sp = await searchParams;
-  const humans = await prisma.humanProfile
-    .findMany({
-      where: {
-        available: true,
-        ...(sp.city ? { city: { contains: sp.city, mode: "insensitive" } } : {}),
-        ...(sp.skill ? { skills: { has: sp.skill } } : {}),
-        ...(sp.maxRate ? { rateUsd: { lte: sp.maxRate } } : {})
-      },
-      orderBy: [{ verified: "desc" }, { reputation: "desc" }, { rateUsd: "asc" }],
-      take: 24
-    })
-    .catch(() => demoHumans);
+  const humans = await listHumans({ city: sp.city, skill: sp.skill, maxRate: sp.maxRate, limit: 24 });
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-6">
