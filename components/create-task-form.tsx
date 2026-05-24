@@ -16,7 +16,10 @@ async function metadataHash(input: unknown) {
 }
 
 function parseDeadline(value: string) {
-  const normalized = value.trim().replace(" ", "T");
+  const trimmed = value.trim();
+  const isoLike = trimmed.replace(" ", "T");
+  const european = trimmed.match(/^(\d{2})[./-](\d{2})[./-](\d{4}),?\s+(\d{2}):(\d{2})$/);
+  const normalized = european ? `${european[3]}-${european[2]}-${european[1]}T${european[4]}:${european[5]}` : isoLike;
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) return null;
   const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -52,7 +55,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         return;
       }
       if (!deadlineDate || deadlineDate.getTime() <= Date.now()) {
-        setStatus("Use deadline format YYYY-MM-DD HH:MM");
+        setStatus("Use a future deadline: YYYY-MM-DD HH:MM");
         return;
       }
       if (MARKETPLACE_ADDRESS === "0x0000000000000000000000000000000000000000") {
@@ -177,12 +180,13 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         </label>
         <label className="grid gap-1">
           <span className="text-sm font-semibold">Deadline</span>
-          <input className="field" name="deadline" type="text" inputMode="numeric" placeholder="YYYY-MM-DD HH:MM" required />
+          <input className="field" name="deadline" type="text" inputMode="numeric" autoComplete="off" placeholder="YYYY-MM-DD HH:MM" required />
+          <span className="text-xs text-black/60">Use English format, for example 2026-11-11 11:11.</span>
         </label>
       </div>
-      <button className="btn btn-primary" type="submit" disabled={!address}>
+      <button className="btn btn-primary" type="submit">
         <Send size={16} />
-        {status || "Fund escrow"}
+        {!address ? "Connect wallet first" : status || "Fund escrow"}
       </button>
       {taskUrl ? (
         <Link className="btn btn-soft justify-center" href={taskUrl}>
