@@ -1,6 +1,72 @@
 # RentAHuman Arc MVP
 
-RentAHuman is a wallet-native marketplace where humans do real-world tasks for USDC and AI agents can hire them through a paid API. The MVP runs on Arc Testnet. Worker payments are held in a smart-contract escrow; x402 is used only to charge agents for API access.
+RentAHuman is a marketplace where AI agents can hire real humans for real-world work and pay them in USDC through an Arc smart-contract escrow.
+
+The core idea is simple:
+
+> AI can think, plan, and pay, but it cannot physically inspect a storefront, take a real-world photo, pick up an item, call a local business, or verify something on the ground. RentAHuman gives AI agents a way to hire humans for those tasks with crypto-native payments.
+
+This MVP combines:
+
+- **Arc Testnet** for fast USDC-native escrow payments.
+- **USDC smart-contract escrow** for worker payment protection.
+- **x402** for paid AI-agent API access.
+- **Wallet login** for anonymous human workers and employers.
+- **On-chain dashboard** so both sides can interact directly with the contract.
+
+## What This Project Does
+
+RentAHuman has two types of customers:
+
+1. **Human employer**
+   - A normal user connects a wallet.
+   - Creates a task.
+   - Funds escrow with USDC.
+   - Confirms payment after proof.
+
+2. **AI agent employer**
+   - An agent pays x402 to access marketplace APIs.
+   - Finds workers.
+   - Creates a hire request.
+   - Uses its own Arc wallet to fund escrow.
+   - Reads proof through the API.
+   - Confirms payout from its own wallet.
+
+In both cases, the human worker is paid by the same Arc escrow contract.
+
+## Hackathon Demo Story
+
+Example demo:
+
+1. An AI agent needs a real-world storefront check.
+2. The agent calls RentAHuman's paid API using x402.
+3. The API returns available workers.
+4. The agent creates a task: "Take 3 photos of this storefront and upload proof."
+5. The agent wallet funds `1 USDC` into escrow on Arc.
+6. A human worker opens the dashboard and accepts the task.
+7. The worker completes the task and submits proof.
+8. The agent retrieves proof through the x402 API.
+9. The agent verifies proof off-chain.
+10. The agent wallet calls `confirmCompletion`.
+11. The smart contract pays:
+    - `95%` to the worker
+    - `5%` to the marketplace fee wallet
+
+The important point for judges:
+
+> x402 monetizes the agent API. Arc escrow protects the worker payment.
+
+They are separate payment layers working together.
+
+## Live MVP Components
+
+- Browse workers: `/browse`
+- Create task: `/tasks/create`
+- On-chain dashboard: `/dashboard`
+- Manual escrow tools: `/escrow`
+- Agent API: `/api/v1/agents/*`
+- Agent wallet demo script: `ai-agent-example/agent-wallet-flow.ts`
+- Smart contract: `contracts/contracts/EscrowMarketplace.sol`
 
 ## Quick Start
 
@@ -12,27 +78,30 @@ npm run dev
 
 Open:
 
-- Human marketplace: `http://localhost:3000/browse`
-- Create task: `http://localhost:3000/tasks/create`
-- On-chain task dashboard: `http://localhost:3000/dashboard`
-- Manual escrow tools: `http://localhost:3000/escrow`
+```text
+http://localhost:3000/browse
+```
 
-Database is optional for the MVP. If `DATABASE_URL` is missing, the app falls back to in-memory/demo data. On-chain tasks still work because the source of truth for escrow state is the Arc smart contract.
+Database is optional for this MVP. Without `DATABASE_URL`, the app uses in-memory/demo data. The smart contract remains the source of truth for escrow state.
 
 ## Arc Network
 
-- Network: Arc Testnet
-- Chain ID: `5042002`
-- RPC: `https://rpc.testnet.arc.network`
-- WebSocket: `wss://rpc.testnet.arc.network`
-- Explorer: `https://testnet.arcscan.app`
-- Faucet: `https://faucet.circle.com`
-- USDC ERC-20 interface: `0x3600000000000000000000000000000000000000`
-- USDC ERC-20 decimals: `6`
+The MVP runs on Arc Testnet.
 
-Important: Arc native gas accounting uses 18 decimals internally, but the ERC-20 USDC interface uses 6 decimals. The escrow contract always uses ERC-20 USDC amounts with 6 decimals.
+| Field | Value |
+|---|---|
+| Network | Arc Testnet |
+| Chain ID | `5042002` |
+| RPC | `https://rpc.testnet.arc.network` |
+| WebSocket | `wss://rpc.testnet.arc.network` |
+| Explorer | `https://testnet.arcscan.app` |
+| Faucet | `https://faucet.circle.com` |
+| USDC ERC-20 | `0x3600000000000000000000000000000000000000` |
+| USDC ERC-20 decimals | `6` |
 
-Current deployed marketplace contract used in the MVP:
+Arc uses USDC as the native gas token, but the ERC-20 USDC interface still uses 6 decimals. The escrow contract always uses ERC-20 USDC amounts with 6 decimals.
+
+Current deployed MVP contract:
 
 ```env
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x571E3f1301d596f0052861D499E936Dc2621892f
@@ -48,37 +117,103 @@ FEE_RECIPIENT_ADDRESS=0x... \
 npm run contract:deploy:arc
 ```
 
-Copy the deployed address into `NEXT_PUBLIC_CONTRACT_ADDRESS` locally and in Vercel, then redeploy the app.
+After deployment, update `NEXT_PUBLIC_CONTRACT_ADDRESS` locally and in Vercel, then redeploy the app.
+
+## Who Does What
+
+### Human Employer
+
+The human employer is a wallet user who wants work done.
+
+They:
+
+1. Connect wallet.
+2. Create a task.
+3. Write the task title and description.
+4. Choose an amount in USDC.
+5. Approve USDC.
+6. Fund escrow.
+7. Wait for worker proof.
+8. Confirm payout or open a dispute.
+
+### Human Worker
+
+The worker is a wallet user who wants to earn USDC.
+
+They:
+
+1. Connect wallet.
+2. Open `/dashboard`.
+3. Read the task description.
+4. Accept an open task.
+5. Complete the real-world work.
+6. Submit proof.
+7. Wait for employer or agent confirmation.
+8. Receive USDC from the smart contract.
+
+### AI Agent
+
+The AI agent is an autonomous buyer with its own Arc wallet.
+
+It:
+
+1. Pays x402 to access RentAHuman API endpoints.
+2. Searches for workers.
+3. Creates a hire request.
+4. Receives escrow parameters.
+5. Signs USDC `approve`.
+6. Signs escrow `createTask`.
+7. Later reads worker proof through the API.
+8. Verifies proof off-chain.
+9. Signs `confirmCompletion`.
+
+The agent private key is not stored in the app. It lives only in the agent runtime.
+
+### Marketplace
+
+The marketplace provides:
+
+- worker discovery
+- task metadata
+- x402-paid agent API
+- smart-contract escrow UI
+- fee recipient wallet
+
+The marketplace does not custody worker escrow funds. Escrow funds are held by the smart contract.
 
 ## Smart Contract Logic
 
-Contract: `contracts/contracts/EscrowMarketplace.sol`
+Contract:
 
-The contract holds USDC in escrow until a task is cancelled, completed, disputed, or auto-released.
+```text
+contracts/contracts/EscrowMarketplace.sol
+```
 
-### Roles
+The contract controls the real worker payment. It holds USDC until the task reaches a final state.
 
-- `employer`: the wallet that creates and funds a task. This can be a human or an AI agent wallet.
-- `executor`: the worker wallet that performs the task.
-- `owner`: the contract owner. In this MVP, the owner is also used as a placeholder executor for open-to-any-worker tasks.
+### Roles In The Contract
+
+- `employer`: wallet that creates and funds the task.
+- `executor`: worker wallet that performs the task.
+- `owner`: contract owner. Also used as the placeholder executor for open-to-any-worker tasks.
 - `feeRecipient`: wallet receiving marketplace fees.
 
-### Task Fields
+### Task Data
 
-Each on-chain task stores:
+Each task stores:
 
-- `id`: sequential on-chain task ID.
+- `id`: on-chain task ID.
 - `employer`: wallet that funded escrow.
-- `executor`: fixed worker wallet, or `owner()` as the placeholder for "open to any worker".
-- `amount`: USDC amount in atomic 6-decimal units.
+- `executor`: worker wallet, or placeholder before acceptance.
+- `amount`: USDC amount in 6-decimal atomic units.
 - `deadline`: Unix timestamp.
-- `status`: task lifecycle status.
-- `taskHash`: bytes32 hash of off-chain task metadata.
-- `proofHash`: bytes32 hash of worker proof.
-- `createdAt`: creation timestamp.
+- `status`: lifecycle state.
+- `taskHash`: hash of off-chain task metadata.
+- `proofHash`: hash of submitted proof.
+- `createdAt`: task creation timestamp.
 - `completedAt`: finalization timestamp.
 
-Task title, description, category, and location are stored off-chain in the app/API and linked by `chainTaskId`. The dashboard reads both on-chain state and off-chain metadata so workers can see what to do.
+The full human-readable task description is stored off-chain and linked by `chainTaskId`. The dashboard combines on-chain data with off-chain metadata so workers can read instructions.
 
 ### Statuses
 
@@ -100,20 +235,25 @@ Function:
 createTask(address executor, uint256 amount, uint256 deadline, bytes32 taskHash)
 ```
 
+What happens:
+
+1. Employer approves USDC.
+2. Employer calls `createTask`.
+3. Contract pulls USDC from employer.
+4. Contract stores task data.
+5. Task becomes `Open`.
+
 Rules:
 
-- `executor` cannot be zero.
-- `amount` must be greater than zero.
-- `deadline` must be at least 1 hour in the future.
-- Employer must approve USDC first.
-- Contract pulls USDC from `msg.sender` using `safeTransferFrom`.
-- New task status is `Open`.
+- amount must be greater than zero
+- deadline must be at least 1 hour in the future
+- executor cannot be zero
 
-Frontend behavior:
+Open-worker logic:
 
-- If employer fills executor address, task is locked to that executor.
-- If employer leaves executor blank, frontend sends `owner()` as placeholder.
-- Placeholder means any wallet can accept the task and become executor.
+- If an employer specifies an executor address, only that wallet can accept.
+- If the employer leaves executor blank in the UI, the frontend sends `owner()` as a placeholder.
+- If executor is `owner()`, any worker wallet can accept.
 
 ### Accept Task
 
@@ -123,15 +263,15 @@ Function:
 acceptTask(uint256 taskId)
 ```
 
-Rules:
+What happens:
 
-- Task must be `Open`.
-- If `task.executor == owner()`, any wallet can accept.
-- When any wallet accepts an open-to-any-worker task, the contract sets `task.executor = msg.sender`.
-- If executor was fixed at creation, only that executor wallet can accept.
-- Status becomes `InProgress`.
+1. Worker clicks `Accept as worker`.
+2. Contract checks task is `Open`.
+3. If executor is placeholder `owner()`, the contract sets executor to `msg.sender`.
+4. If executor is fixed, only that executor can accept.
+5. Task becomes `InProgress`.
 
-This is the main MVP worker flow: a worker opens `/dashboard`, finds an open task, clicks `Accept as worker`, and becomes the on-chain executor.
+This is how a random worker can become the executor for an open marketplace task.
 
 ### Submit Proof
 
@@ -141,14 +281,15 @@ Function:
 submitProof(uint256 taskId, bytes32 proofHash)
 ```
 
-Rules:
+What happens:
 
-- Task must be `InProgress`.
-- Only the executor can submit proof.
-- Contract saves `proofHash`.
-- Status becomes `ProofSubmitted`.
+1. Worker completes the task.
+2. Worker enters a proof note or proof URL.
+3. App hashes the proof.
+4. Worker submits the proof hash on-chain.
+5. Task becomes `ProofSubmitted`.
 
-The UI lets the worker type a proof note or URL. The app hashes it and submits the hash on-chain. Off-chain proof text/URL can also be stored by the app/API.
+Only the executor can submit proof.
 
 ### Confirm Completion
 
@@ -158,32 +299,24 @@ Function:
 confirmCompletion(uint256 taskId)
 ```
 
-Rules:
+What happens:
 
-- Task must be `ProofSubmitted`.
-- Only the employer can confirm.
-- Contract pays the executor and fee recipient.
-- Executor reputation increases by `10`.
-- Status becomes `Completed`.
+1. Employer or agent reviews proof.
+2. Employer or agent calls `confirmCompletion`.
+3. Contract splits escrow.
+4. Worker receives `95%`.
+5. Fee recipient receives `5%`.
+6. Worker reputation increases.
+7. Task becomes `Completed`.
 
-Payment split:
+Only the employer can confirm.
 
-- Worker/executor receives `95%`.
-- Marketplace `feeRecipient` receives `5%`.
+For a `1 USDC` task:
 
-The default fee is:
-
-```solidity
-protocolFeeBps = 500
+```text
+0.95 USDC -> worker
+0.05 USDC -> feeRecipient
 ```
-
-`500 bps = 5%`.
-
-Example for a `1 USDC` task:
-
-- executor receives `0.95 USDC`
-- feeRecipient receives `0.05 USDC`
-- escrow contract balance returns to `0` for that task
 
 ### Cancel / Refund
 
@@ -193,55 +326,45 @@ Function:
 cancelOpenTask(uint256 taskId)
 ```
 
-Rules:
+What happens:
 
-- Task must be `Open`.
-- Only employer can cancel.
-- Full escrow amount returns to employer.
-- Status becomes `Cancelled`.
+1. Employer cancels an unaccepted task.
+2. Full escrow amount returns to employer.
+3. Task becomes `Cancelled`.
 
-Cancel is not available after the task is accepted. After `InProgress`, the flow must go through proof, confirmation, dispute, or later protocol extensions.
+Only employer can cancel. Task must still be `Open`.
 
-### Open Dispute
+### Dispute
 
-Function:
+Open dispute:
 
 ```solidity
 openDispute(uint256 taskId)
 ```
 
-Rules:
-
-- Task must be `ProofSubmitted`.
-- Only employer can open dispute.
-- Status becomes `Disputed`.
-
-Dispute is for cases where worker submitted proof but employer does not want to pay.
-
-### Resolve Dispute
-
-Function:
+Resolve dispute:
 
 ```solidity
 resolveDispute(uint256 taskId, bool favorExecutor)
 ```
 
-Rules:
+Flow:
 
-- Only contract owner can resolve.
-- Task must be `Disputed`.
+1. Worker submits proof.
+2. Employer disagrees.
+3. Employer opens dispute.
+4. Contract owner resolves.
 
 If `favorExecutor = true`:
 
-- Task becomes `Completed`.
-- Executor gets 95%.
-- Fee recipient gets 5%.
-- Executor reputation increases by 10.
+- worker gets 95%
+- fee recipient gets 5%
+- task becomes `Completed`
 
 If `favorExecutor = false`:
 
-- Task becomes `Cancelled`.
-- Employer gets full refund.
+- employer gets full refund
+- task becomes `Cancelled`
 
 ### Auto Release
 
@@ -251,130 +374,116 @@ Function:
 autoRelease(uint256 taskId)
 ```
 
-Rules:
+If a worker submitted proof and employer disappears, anyone can call auto-release after:
 
-- Task must be `ProofSubmitted`.
-- Anyone can call it.
-- It can only run after `deadline + 24 hours`.
-- It pays executor 95% and fee recipient 5%.
-- Status becomes `AutoReleased`.
-
-This protects workers if employer disappears after proof is submitted.
-
-### Admin Functions
-
-```solidity
-setFeeRecipient(address nextFeeRecipient)
-setProtocolFeeBps(uint256 nextFeeBps)
+```text
+deadline + 24 hours
 ```
 
-Rules:
-
-- Only contract owner can call.
-- Fee recipient cannot be zero.
-- Protocol fee cannot exceed `1000 bps` / `10%`.
-
-## Human UI Flow
-
-### Employer
-
-1. Connect wallet.
-2. Open `/tasks/create`.
-3. Fill:
-   - executor address, or leave blank for any worker
-   - task title
-   - task description / instructions
-   - category
-   - location
-   - USDC amount
-   - deadline
-4. Click `Fund escrow`.
-5. Wallet approves USDC.
-6. Wallet creates escrow task on Arc.
-7. Task appears on `/dashboard` with on-chain ID and description.
-8. After worker submits proof, employer clicks `Confirm payout`.
-
-### Worker
-
-1. Connect wallet.
-2. Open `/dashboard`.
-3. Read task title and description.
-4. If task says `Open to any worker`, click `Accept as worker`.
-5. Complete real-world task.
-6. Enter proof note or URL.
-7. Click `Submit proof`.
-8. Wait for employer confirmation or auto-release.
+The worker gets paid and the task becomes `AutoReleased`.
 
 ## Dashboard Logic
 
-`/dashboard` is on-chain first.
+The dashboard is designed for both sides.
 
-It reads:
+It reads directly from the smart contract:
 
 - `nextTaskId()`
 - `tasks(taskId)`
 - `owner()`
 
-It also calls:
+Then it asks the app API for metadata:
 
 ```http
 GET /api/tasks?chainIds=1,2,3
 ```
 
-to attach off-chain task metadata:
+The card shows:
 
+- task ID
 - title
 - description
 - category
-- location
-- app task ID
+- amount
+- employer
+- executor
+- deadline
+- status
+- role-based buttons
 
-Buttons are disabled unless the connected wallet and task status allow the action:
+Buttons are only enabled when the connected wallet is allowed to act.
 
-- `Accept as worker`: task is `Open` and either open to any worker or connected wallet is fixed executor.
-- `Submit proof`: task is `InProgress` and connected wallet is executor.
-- `Confirm payout`: task is `ProofSubmitted` and connected wallet is employer.
-- `Cancel / refund`: task is `Open` and connected wallet is employer.
-- `Open dispute`: task is `ProofSubmitted` and connected wallet is employer.
-- `Auto release`: task is `ProofSubmitted`; the contract itself enforces the time rule.
+| Button | Who can click | Required status |
+|---|---|---|
+| Accept as worker | executor or any worker for open task | `Open` |
+| Submit proof | executor | `InProgress` |
+| Confirm payout | employer | `ProofSubmitted` |
+| Cancel / refund | employer | `Open` |
+| Open dispute | employer | `ProofSubmitted` |
+| Auto release | anyone | `ProofSubmitted`, after deadline grace |
 
 ## x402 Logic
 
-x402 is used for paid API access by AI agents. It does not replace escrow and does not pay the human worker.
+x402 is not the worker payment.
 
-There are two payment layers:
+x402 is the agent API access payment.
 
-1. x402 API fee
-   - paid to `MARKETPLACE_WALLET_ADDRESS`
-   - unlocks API endpoints for the agent
-   - example: pay to search humans or retrieve proof
+The worker payment happens through Arc escrow.
 
-2. Arc escrow payment
-   - paid by the agent wallet into `EscrowMarketplace`
-   - held until proof and confirmation
-   - pays worker 95% and marketplace fee 5%
+### Why x402 Is Used
 
-This separation is intentional. x402 monetizes agent access to the marketplace API. The smart contract protects the worker payment.
+AI agents need machine-native ways to pay for API access. Instead of API subscriptions, dashboards, or credit cards, x402 lets an agent pay per request.
 
-### Protected Agent Endpoints
+In RentAHuman:
+
+- an agent pays x402 to search humans
+- an agent pays x402 to create hire requests
+- an agent pays x402 to retrieve proof
+- an agent separately funds escrow on Arc to pay the human
+
+### Two Payment Layers
+
+Layer 1: x402 API fee
+
+- paid by agent
+- unlocks API endpoint
+- goes to `MARKETPLACE_WALLET_ADDRESS`
+- does not pay worker
+
+Layer 2: Arc escrow
+
+- funded by employer or agent wallet
+- held by smart contract
+- pays worker after proof
+- pays marketplace fee from escrow
+
+This is the core architecture:
+
+```text
+AI Agent
+  -> pays x402
+  -> gets API access
+  -> finds worker
+  -> funds Arc escrow
+  -> receives proof
+  -> confirms payout
+
+Human Worker
+  -> accepts task
+  -> submits proof
+  -> gets paid by contract
+```
+
+### x402-Protected Endpoints
 
 When `X402_ENABLED=true`, these endpoints require x402 payment:
 
-- `GET /api/v1/agents/humans`
-  - price: `$0.01`
-  - purpose: search available workers
-
-- `POST /api/v1/agents/hire`
-  - price: `$0.05`
-  - purpose: create app-side hire request and receive escrow parameters
-
-- `GET /api/v1/agents/tasks/:id`
-  - price: `$0.005`
-  - purpose: inspect task state
-
-- `GET /api/v1/agents/tasks/:id/proof`
-  - price: `$0.005`
-  - purpose: retrieve proof URL/hash/status
+| Endpoint | Price | Purpose |
+|---|---:|---|
+| `GET /api/v1/agents/humans` | `$0.01` | Search workers |
+| `POST /api/v1/agents/hire` | `$0.05` | Create hire request |
+| `GET /api/v1/agents/tasks/:id` | `$0.005` | Read task |
+| `GET /api/v1/agents/tasks/:id/proof` | `$0.005` | Read proof |
 
 When `X402_ENABLED=false`, the same endpoints use bearer auth:
 
@@ -382,7 +491,7 @@ When `X402_ENABLED=false`, the same endpoints use bearer auth:
 Authorization: Bearer dev-agent-key
 ```
 
-This is the MVP/test mode.
+That is the local/test mode.
 
 ### x402 Environment
 
@@ -393,13 +502,13 @@ X402_FACILITATOR_URL=https://x402.org/facilitator
 X402_NETWORK=eip155:5042002
 ```
 
-`MARKETPLACE_WALLET_ADDRESS` receives the x402 API fees. It can be the same as the smart contract `feeRecipient`, but it is a separate concept.
+`MARKETPLACE_WALLET_ADDRESS` receives x402 API fees. It can be the same wallet as `feeRecipient`, but it does not have to be.
 
-## Agent Wallet Flow
+## AI Agent Wallet Flow
 
-The agent is an autonomous buyer. It has its own funded Arc Testnet wallet.
+The AI agent is a real on-chain employer.
 
-The app never stores the agent private key. The key lives only in the agent runtime, for example in `ai-agent-example/.env`.
+The agent has its own funded Arc Testnet wallet. The app does not custody the agent's key.
 
 Agent env:
 
@@ -414,7 +523,7 @@ TASK_AMOUNT_USDC=1
 TASK_DEADLINE_HOURS=24
 ```
 
-Run:
+Run the demo agent:
 
 ```bash
 cd ai-agent-example
@@ -423,31 +532,34 @@ npm install
 npm run wallet-flow
 ```
 
-What `agent-wallet-flow.ts` does:
+The demo script:
 
-1. Creates an agent wallet from `AGENT_PRIVATE_KEY`.
-2. Uses x402 paid fetch if `X402_ENABLED=true`.
-3. Uses bearer auth if `X402_ENABLED=false`.
-4. Calls `/api/v1/agents/humans` to find workers.
-5. Calls `/api/v1/agents/hire` to create a hire request.
-6. Receives escrow params:
-   - `contractAddress`
-   - `executorAddress`
-   - `amountAtomic`
-   - `deadlineUnix`
-   - `metadataHash`
-7. Signs USDC `approve(contractAddress, amountAtomic)`.
-8. Signs `createTask(executorAddress, amountAtomic, deadlineUnix, metadataHash)`.
-9. Reads `TaskCreated` event to get `chainTaskId`.
-10. Updates app task with `chainTaskId`.
-11. Later reads proof through `/api/v1/agents/tasks/:id/proof`.
-12. If proof is valid, signs `confirmCompletion(chainTaskId)`.
+1. Loads `AGENT_PRIVATE_KEY`.
+2. Creates an Arc wallet client.
+3. Uses x402 fetch if `X402_ENABLED=true`.
+4. Uses bearer auth if `X402_ENABLED=false`.
+5. Calls `/api/v1/agents/humans`.
+6. Calls `/api/v1/agents/hire`.
+7. Receives escrow params.
+8. Signs USDC `approve`.
+9. Signs `createTask`.
+10. Reads the `TaskCreated` event.
+11. Saves `chainTaskId` back to the app.
+12. Later reads proof.
+13. Calls `confirmCompletion` if proof is valid.
 
-In this MVP, proof validation is manual/simple. A production agent can plug in an LLM, vision model, geolocation check, receipt parser, or custom verifier before calling `confirmCompletion`.
+In this MVP, proof validation is intentionally simple/manual. A production agent could add:
 
-## Agent Hiring Example
+- LLM proof review
+- image verification
+- receipt parsing
+- location checks
+- human-in-the-loop review
+- risk scoring before payout
 
-Agent creates a task:
+## Agent Hire API Example
+
+Request:
 
 ```http
 POST /api/v1/agents/hire
@@ -458,7 +570,7 @@ Content-Type: application/json
   "agentId": "0xAgentWallet",
   "executorAddress": "0xWorkerWallet",
   "title": "Check storefront",
-  "description": "Take 3 photos of the storefront and upload proof URL.",
+  "description": "Take 3 clear photos of the storefront and upload proof URL.",
   "amountUsdc": "1",
   "deadlineHours": 24,
   "category": "Research"
@@ -471,8 +583,8 @@ Response:
 {
   "task": {
     "id": "app-task-id",
-    "chainTaskId": null,
-    "title": "Check storefront"
+    "title": "Check storefront",
+    "chainTaskId": null
   },
   "escrow": {
     "contractAddress": "0x571E3f1301d596f0052861D499E936Dc2621892f",
@@ -485,7 +597,24 @@ Response:
 }
 ```
 
-The agent must then fund escrow on-chain. The API does not move escrow funds.
+The API prepares the task and returns escrow parameters. It does not move escrow funds. The agent wallet signs the on-chain escrow transaction.
+
+## Demo Script For Judges
+
+Recommended hackathon demo:
+
+1. Show `/browse`: humans available for tasks.
+2. Show `/tasks/create`: human employer can create task.
+3. Create an open-to-any-worker task with `1 USDC`.
+4. Show `/dashboard`: task appears with ID and description.
+5. Switch wallet to worker.
+6. Worker clicks `Accept as worker`.
+7. Worker submits proof.
+8. Switch back to employer.
+9. Employer clicks `Confirm payout`.
+10. Show contract balance is empty for that task.
+11. Explain payout: 95% worker, 5% marketplace.
+12. Show x402 agent script and explain AI agents can do the employer side programmatically.
 
 ## Testing
 
@@ -495,15 +624,15 @@ Smart contract tests:
 npm run contract:test
 ```
 
-Covered scenarios:
+Covered:
 
 - create, accept, proof, confirm payout
-- cancel open task and refund
-- self-executor demo task
-- any-worker accepts owner-placeholder task
-- fixed executor cannot be accepted by another wallet
-- dispute resolved for employer
-- auto release after deadline grace window
+- cancel and refund
+- self-executor demo
+- any-worker open task
+- fixed-executor task
+- dispute resolution
+- auto-release
 
 App checks:
 
@@ -518,12 +647,13 @@ Agent example typecheck:
 npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --skipLibCheck --types node ai-agent-example/agent-wallet-flow.ts
 ```
 
-## Production Notes
+## Important Production Notes
 
-- Do not store `AGENT_PRIVATE_KEY` in the Next.js app or Vercel server env unless you intentionally build a backend signer.
-- The current MVP uses agent-wallet signing, not backend signing.
+- Do not store `AGENT_PRIVATE_KEY` in the Next.js app unless intentionally building a backend signer.
+- Current MVP uses agent-wallet signing, not backend signing.
 - x402 fees and escrow payments are separate.
-- If `DATABASE_URL` is not configured, off-chain metadata is volatile. Configure Postgres for persistent task descriptions and proof URLs.
-- Old tasks stay on the old contract if `NEXT_PUBLIC_CONTRACT_ADDRESS` changes. The dashboard only reads the current configured contract.
+- Configure a real database for persistent task descriptions and proof URLs.
+- Old tasks stay on old contracts if `NEXT_PUBLIC_CONTRACT_ADDRESS` changes.
+- Dashboard reads only the current configured contract.
 
-Arc mainnet is not hardcoded because current Arc docs expose testnet only.
+Arc mainnet is not hardcoded because this MVP targets Arc Testnet.
