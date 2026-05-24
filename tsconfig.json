@@ -38,6 +38,10 @@
   "exclude": [
     "node_modules",
     "contracts",
-    "ai-agent-example"
+    "ai-agent-example",
+    "arc-agentshopskill-ref",
+    ".vercel-cache",
+    ".vercel-data",
+    ".vercel-upload"
   ]
 }

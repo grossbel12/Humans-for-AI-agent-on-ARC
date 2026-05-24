@@ -12,3 +12,8 @@ typechain-types
 *.log
 .vercel
 .npm-cache
+.vercel-cache
+.vercel-data
+.vercel-upload
+arc-agentshopskill-ref
+tsconfig.tsbuildinfo
