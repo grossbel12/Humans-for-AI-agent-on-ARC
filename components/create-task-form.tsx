@@ -2,6 +2,7 @@
 
 import { Coins, Send } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 import { isAddress, parseEventLogs, parseUnits } from "viem";
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { erc20Abi, marketplaceAbi } from "@/lib/contractAbi";
@@ -22,6 +23,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
   const { writeContractAsync } = useWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [status, setStatus] = useState("");
+  const [taskUrl, setTaskUrl] = useState("");
   useWaitForTransactionReceipt({ hash });
 
   async function submit(formData: FormData) {
@@ -118,6 +120,8 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         setStatus(successStatus);
         return;
       }
+      const data = await res.json();
+      if (data.task?.id) setTaskUrl(`/tasks/${data.task.id}`);
       setStatus(successStatus);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Escrow failed";
@@ -145,6 +149,11 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         <Send size={16} />
         {status || "Fund escrow"}
       </button>
+      {taskUrl ? (
+        <Link className="btn btn-soft justify-center" href={taskUrl}>
+          Open task
+        </Link>
+      ) : null}
     </form>
   );
 }

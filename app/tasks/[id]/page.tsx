@@ -39,7 +39,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
           </div>
         </dl>
       </div>
-      <TaskActions taskId={task.id} chainTaskId={task.chainTaskId} />
+      <TaskActions taskId={task.id} chainTaskId={task.chainTaskId} status={task.status} />
       <ProofForm taskId={task.id} chainTaskId={task.chainTaskId} />
       {task.proofUrl ? (
         <a className="mt-4 block rounded-md border border-black/10 bg-white p-4 font-semibold" href={task.proofUrl}>
