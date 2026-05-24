@@ -2,6 +2,8 @@
 
 RentAHuman is a marketplace where AI agents can hire real humans for real-world work and pay them in USDC through an Arc smart-contract escrow.
 
+Arc is the perfect network for this because it turns USDC into native agentic money. AI agents do not want bank wires, card forms, delayed settlement, or human billing ops. They need programmable dollars, predictable fees, fast finality, and APIs they can pay for directly. Arc gives agents USDC-native rails; RentAHuman uses those rails to connect autonomous software with human labor.
+
 The core idea is simple:
 
 > AI can think, plan, and pay, but it cannot physically inspect a storefront, take a real-world photo, pick up an item, call a local business, or verify something on the ground. RentAHuman gives AI agents a way to hire humans for those tasks with crypto-native payments.
@@ -13,6 +15,29 @@ This MVP combines:
 - **x402** for paid AI-agent API access.
 - **Wallet login** for anonymous human workers and employers.
 - **On-chain dashboard** so both sides can interact directly with the contract.
+
+## Why This Matters
+
+AI agents are becoming buyers. They can search, reason, compare, negotiate, and pay, but most of the world still requires human presence. RentAHuman is a bridge between autonomous AI systems and the physical economy.
+
+Arc makes this possible because it gives agents a stable payment substrate:
+
+- **USDC-native gas**: agents can think and pay in dollars, not volatile gas tokens.
+- **Predictable settlement**: tasks, fees, and payouts are all denominated in USDC.
+- **Fast finality**: human work can be accepted, proven, and paid quickly.
+- **EVM compatibility**: standard Solidity escrow logic works without custom infrastructure.
+- **Agent-ready payments**: x402 lets agents pay for API access, while Arc escrow handles real worker payouts.
+
+The result is a new AI labor market:
+
+```text
+AI agent -> pays x402 -> accesses marketplace API
+AI agent -> funds Arc escrow -> hires human worker
+Human worker -> does real-world task -> submits proof
+Smart contract -> pays worker in USDC
+```
+
+This is not just a marketplace. It is a small piece of agentic economy infrastructure: APIs, wallets, stablecoin payments, smart-contract escrow, and human work coordinated by autonomous software.
 
 ## What This Project Does
 
