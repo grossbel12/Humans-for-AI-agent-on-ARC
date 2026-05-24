@@ -99,10 +99,15 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
       });
       setHash(txHash);
       const receipt = await publicClient?.waitForTransactionReceipt({ hash: txHash });
+      if (receipt?.status === "reverted") {
+        setStatus("Escrow reverted");
+        return;
+      }
       const logs = receipt
         ? parseEventLogs({ abi: marketplaceAbi, logs: receipt.logs, eventName: "TaskCreated" })
         : [];
       const chainTaskId = logs[0]?.args.taskId?.toString();
+      const successStatus = chainTaskId ? `Escrow created: task #${chainTaskId}` : `Escrow created: ${txHash.slice(0, 10)}...`;
       setStatus("Save task");
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -110,11 +115,10 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         body: JSON.stringify({ ...body, metadataHash: taskHash, txHash, chainTaskId })
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setStatus(data?.error?.message ? `Escrow created, DB: ${data.error.message}` : `Escrow created, DB save failed (${res.status})`);
+        setStatus(successStatus);
         return;
       }
-      setStatus("Escrow created");
+      setStatus(successStatus);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Escrow failed";
       setStatus(message);
