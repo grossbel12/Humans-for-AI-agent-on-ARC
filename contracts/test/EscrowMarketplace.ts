@@ -43,6 +43,26 @@ describe("EscrowMarketplace", function () {
     await expect(market.connect(employer).createTask(employer.address, usdc(1), deadline, hash)).to.emit(market, "TaskCreated");
   });
 
+  it("lets any wallet accept owner-placeholder tasks", async () => {
+    const { owner, employer, executor, token, market } = await deploy();
+    const deadline = Math.floor(Date.now() / 1000) + 7200;
+    await market.connect(employer).createTask(owner.address, usdc(10), deadline, hash);
+    await expect(market.connect(executor).acceptTask(1)).to.emit(market, "TaskAccepted").withArgs(1, executor.address);
+    const task = await market.tasks(1);
+    expect(task.executor).to.equal(executor.address);
+    await market.connect(executor).submitProof(1, proof);
+    await market.connect(employer).confirmCompletion(1);
+    expect(await token.balanceOf(executor.address)).to.equal(usdc(9) + 500_000n);
+  });
+
+  it("keeps fixed-executor tasks locked to that executor", async () => {
+    const { employer, executor, feeRecipient, market } = await deploy();
+    const deadline = Math.floor(Date.now() / 1000) + 7200;
+    await market.connect(employer).createTask(executor.address, usdc(1), deadline, hash);
+    await expect(market.connect(feeRecipient).acceptTask(1)).to.be.revertedWithCustomError(market, "NotExecutor");
+    await expect(market.connect(executor).acceptTask(1)).to.emit(market, "TaskAccepted");
+  });
+
   it("resolves dispute for employer", async () => {
     const { owner, employer, executor, token, market } = await deploy();
     const deadline = Math.floor(Date.now() / 1000) + 7200;

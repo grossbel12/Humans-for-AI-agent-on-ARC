@@ -95,7 +95,11 @@ contract EscrowMarketplace is Ownable, ReentrancyGuard {
     function acceptTask(uint256 taskId) external {
         Task storage task = tasks[taskId];
         if (task.status != TaskStatus.Open) revert InvalidStatus();
-        if (msg.sender != task.executor) revert NotExecutor();
+        if (task.executor == owner()) {
+            task.executor = msg.sender;
+        } else if (msg.sender != task.executor) {
+            revert NotExecutor();
+        }
         task.status = TaskStatus.InProgress;
         emit TaskAccepted(taskId, msg.sender);
     }

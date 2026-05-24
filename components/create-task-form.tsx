@@ -4,7 +4,7 @@ import { Coins, Send } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { isAddress, parseEventLogs, parseUnits } from "viem";
-import { useAccount, useChainId, usePublicClient, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useChainId, usePublicClient, useReadContract, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { erc20Abi, marketplaceAbi } from "@/lib/contractAbi";
 import { ARC_CHAIN_ID, MARKETPLACE_ADDRESS, USDC_ADDRESS } from "@/lib/constants";
 import { ensureArcTestnet } from "@/lib/arc-wallet";
@@ -21,6 +21,11 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
   const { switchChainAsync } = useSwitchChain();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const ownerQuery = useReadContract({
+    address: MARKETPLACE_ADDRESS,
+    abi: marketplaceAbi,
+    functionName: "owner"
+  });
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [status, setStatus] = useState("");
   const [taskUrl, setTaskUrl] = useState("");
@@ -48,7 +53,12 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
         return;
       }
       const deadline = deadlineDate.toISOString();
-      const executorAddress = String(formData.get("executorAddress"));
+      const rawExecutorAddress = String(formData.get("executorAddress") ?? "").trim();
+      const executorAddress = rawExecutorAddress || ownerQuery.data;
+      if (!executorAddress) {
+        setStatus("Contract owner loading");
+        return;
+      }
       if (!isAddress(executorAddress)) {
         setStatus("Invalid executor address");
         return;
@@ -131,7 +141,7 @@ export function CreateTaskForm({ defaultExecutor }: { defaultExecutor: string })
 
   return (
     <form action={submit} className="mt-5 grid gap-3 rounded-md border border-black/10 bg-white p-4">
-      <input className="field" name="executorAddress" placeholder="Executor 0x..." defaultValue={defaultExecutor} required />
+      <input className="field" name="executorAddress" placeholder="Executor 0x... or blank for any worker" defaultValue={defaultExecutor} />
       <input className="field" name="title" placeholder="Task title" required />
       <textarea className="field min-h-28" name="description" placeholder="Exact instructions and proof needed" required />
       <div className="grid gap-3 md:grid-cols-2">

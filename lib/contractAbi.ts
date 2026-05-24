@@ -25,6 +25,13 @@ export const marketplaceAbi = [
   },
   {
     type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }]
+  },
+  {
+    type: "function",
     name: "acceptTask",
     stateMutability: "nonpayable",
     inputs: [{ name: "taskId", type: "uint256" }],
