@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getSessionAddress } from "@/lib/auth";
-import { createTask, listTasks } from "@/lib/store";
+import { createTask, listTaskMetadataByChainIds, listTasks } from "@/lib/store";
 import { apiError, bytes32Hash, normalizeAddress, usdcToAtomic } from "@/lib/utils";
 import { MARKETPLACE_ADDRESS } from "@/lib/constants";
 
@@ -48,6 +48,11 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
+    const chainIds = url.searchParams.get("chainIds");
+    if (chainIds) {
+      const tasks = await listTaskMetadataByChainIds(chainIds.split(",").map((id) => id.trim()));
+      return Response.json({ tasks });
+    }
     const address = url.searchParams.get("address")?.toLowerCase();
     const tasks = await listTasks({ address, limit: 50 });
     return Response.json({ tasks });

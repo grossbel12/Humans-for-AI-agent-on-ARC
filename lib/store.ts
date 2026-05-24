@@ -210,6 +210,38 @@ export async function listTasks(filters: { address?: string | null; limit?: numb
     .slice(0, filters.limit ?? 50);
 }
 
+export async function listTaskMetadataByChainIds(chainTaskIds: string[]) {
+  const ids = [...new Set(chainTaskIds.filter(Boolean))];
+  if (!ids.length) return [];
+
+  if (hasDatabase) {
+    return prisma.task.findMany({
+      where: { chainTaskId: { in: ids } },
+      select: {
+        id: true,
+        chainTaskId: true,
+        title: true,
+        description: true,
+        category: true,
+        location: true,
+        txHash: true
+      }
+    });
+  }
+
+  return [...db.tasks.values()]
+    .filter((task) => task.chainTaskId && ids.includes(task.chainTaskId))
+    .map((task) => ({
+      id: task.id,
+      chainTaskId: task.chainTaskId,
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      location: task.location ?? null,
+      txHash: task.txHash ?? null
+    }));
+}
+
 export async function getTask(id: string) {
   if (hasDatabase) return prisma.task.findUnique({ where: { id } });
   return db.tasks.get(id) ?? null;

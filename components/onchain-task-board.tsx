@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Handshake, RotateCcw, ShieldAlert, TimerReset, Upload } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatUnits, keccak256, stringToHex } from "viem";
 import { useAccount, useChainId, usePublicClient, useReadContract, useReadContracts, useSwitchChain, useWriteContract } from "wagmi";
 import { ensureArcTestnet } from "@/lib/arc-wallet";
@@ -11,6 +11,15 @@ import { ARC_CHAIN_ID, MARKETPLACE_ADDRESS } from "@/lib/constants";
 const statusNames = ["Open", "InProgress", "ProofSubmitted", "Completed", "Disputed", "Cancelled", "AutoReleased"] as const;
 type ActionName = "acceptTask" | "confirmCompletion" | "openDispute" | "cancelOpenTask" | "autoRelease";
 type ChainTask = readonly [bigint, `0x${string}`, `0x${string}`, bigint, bigint, number, `0x${string}`, `0x${string}`, bigint, bigint];
+type TaskMetadata = {
+  id: string;
+  chainTaskId: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string | null;
+  txHash: string | null;
+};
 
 function sameAddress(a?: string, b?: string) {
   return Boolean(a && b && a.toLowerCase() === b.toLowerCase());
@@ -28,6 +37,7 @@ export function OnchainTaskBoard() {
   const { writeContractAsync } = useWriteContract();
   const [proofs, setProofs] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("");
+  const [metadata, setMetadata] = useState<Record<string, TaskMetadata>>({});
 
   const ownerQuery = useReadContract({
     address: MARKETPLACE_ADDRESS,
@@ -61,6 +71,29 @@ export function OnchainTaskBoard() {
   const tasks = (tasksQuery.data ?? [])
     .map((result, index) => ({ id: taskIds[index], task: result.status === "success" ? (result.result as unknown as ChainTask) : null }))
     .filter((item): item is { id: bigint; task: ChainTask } => Boolean(item.task && item.task[0] > 0n));
+
+  const chainIdList = tasks.map(({ id }) => id.toString()).join(",");
+
+  useEffect(() => {
+    if (!chainIdList) {
+      setMetadata({});
+      return;
+    }
+    let active = true;
+    fetch(`/api/tasks?chainIds=${encodeURIComponent(chainIdList)}`)
+      .then((res) => (res.ok ? res.json() : { tasks: [] }))
+      .then((data) => {
+        if (!active) return;
+        const next = Object.fromEntries((data.tasks ?? []).map((task: TaskMetadata) => [task.chainTaskId, task]));
+        setMetadata(next);
+      })
+      .catch(() => {
+        if (active) setMetadata({});
+      });
+    return () => {
+      active = false;
+    };
+  }, [chainIdList]);
 
   async function prepareWallet() {
     if (!address) throw new Error("Connect wallet first");
@@ -149,6 +182,7 @@ export function OnchainTaskBoard() {
 
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
         {tasks.map(({ id, task }) => {
+          const meta = metadata[id.toString()];
           const taskStatus = Number(task[5]);
           const statusName = statusNames[taskStatus] ?? `Status ${taskStatus}`;
           const employer = task[1];
@@ -168,9 +202,17 @@ export function OnchainTaskBoard() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase text-moss">Task #{id.toString()}</p>
-                  <h2 className="mt-1 text-xl font-black">{formatUnits(task[3], 6)} USDC</h2>
+                  <h2 className="mt-1 text-xl font-black">{meta?.title ?? "Untitled on-chain task"}</h2>
+                  <p className="mt-1 text-sm font-semibold">{formatUnits(task[3], 6)} USDC</p>
                 </div>
                 <span className="rounded-md bg-paper px-2 py-1 text-sm font-semibold">{statusName}</span>
+              </div>
+              <div className="mt-4 rounded-md border border-black/10 p-3 text-sm">
+                <p className="text-xs font-bold uppercase text-moss">{meta?.category ?? "On-chain escrow"}</p>
+                <p className="mt-2 whitespace-pre-wrap text-black/80">
+                  {meta?.description ?? "No off-chain description saved for this task. Ask the employer for instructions before accepting."}
+                </p>
+                {meta?.location ? <p className="mt-2 text-black/60">Location: {meta.location}</p> : null}
               </div>
               <dl className="mt-4 grid gap-2 text-sm">
                 <div className="rounded-md bg-paper p-2">
