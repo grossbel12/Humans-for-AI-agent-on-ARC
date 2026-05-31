@@ -177,6 +177,8 @@ The MVP runs on Arc Testnet.
 | USDC ERC-20 | `0x3600000000000000000000000000000000000000` |
 | USDC ERC-20 decimals | `6` |
 
+This MVP uses Circle's official Arc Testnet RPC (`https://rpc.testnet.arc.network`) so reads, deployments, and agent-wallet transactions reflect the latest network state and can be associated with the project submission and GitHub activity.
+
 Arc uses USDC as the native gas token, but the ERC-20 USDC interface still uses 6 decimals. The escrow contract always uses ERC-20 USDC amounts with 6 decimals.
 
 Current deployed MVP contract:
@@ -676,6 +678,8 @@ cp .env.example .env
 npm install
 npm run wallet-flow
 ```
+
+To make fresh Arc Testnet activity visible through Circle's official RPC, set `ARC_RPC_URL=https://rpc.testnet.arc.network` in the agent environment before running the flow. The agent wallet must also have Arc Testnet USDC from https://faucet.circle.com and an `AGENT_PRIVATE_KEY` kept only in local env.
 
 The demo script:
 
